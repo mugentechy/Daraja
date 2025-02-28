@@ -1,0 +1,31 @@
+# Virtual environment
+env/
+
+*.pyc
+__pycache__/
+instance/
+
+
+# Logs and cache
+logs/
+*.log
+*.pot
+*.pyc
+*.pyo
+*.swp
+
+
+# Pytest and coverage
+.coverage
+htmlcov/
+*.cover
+.cache
+.pytest_cache/
+
+
+# Dependencies
+pip-log.txt
+pip-delete-this-directory.txt
+
+# MacOS system files
+.DS_Store
