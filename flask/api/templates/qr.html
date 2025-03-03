@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+
+{% block title %}Generate M-PESA QR{% endblock %}
+
+{% block content %}
+<div class="card p-4">
+    <h3 class="text-center">Generate M-PESA QR Code</h3>
+    <form id="qrForm">
+        <div class="mb-3">
+            <label class="form-label">Amount</label>
+            <input type="number" class="form-control" id="amount" required>
+        </div>
+        <button type="submit" class="btn btn-success w-100">Generate QR</button>
+    </form>
+    <div id="qrResult" class="text-center mt-3"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $("#qrForm").submit(function(event) {
+        event.preventDefault();
+        let amount = $("#amount").val();
+
+        $.post("/generate_qr", { amount: amount }, function(response) {
+            if (response.QRCode) {
+                $("#qrResult").html(`
+                    <img src="data:image/png;base64,${response.QRCode}" class="img-fluid" />
+                    <br>
+                    <a href="${response.MpesaDeepLink}" class="btn btn-success mt-3">Pay with M-PESA</a>
+                `);
+            } else {
+                $("#qrResult").html('<p class="text-danger">Failed to generate QR Code</p>');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

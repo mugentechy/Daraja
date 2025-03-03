@@ -76,3 +76,31 @@ def callback():
     with open("M_PESAConfirmationResponse.txt", "a") as log:
         log.write(str(response) + "\n")
     return jsonify({"ResultCode": 0, "ResultDesc": "Confirmation Received Successfully"})
+
+
+
+@blueprint.route("/qr", methods=["GET"])
+def qr_page():
+    return render_template("qr.html")
+    
+@blueprint.route("/generate_qr", methods=["POST"])
+def generate_qr():
+    amount = request.form.get("amount")
+
+    payload = {
+        "MerchantName": "TEST SUPERMARKET",
+        "RefNo": "Invoice Test",
+        "Amount": amount,
+        "TrxCode": "BG",
+        "CPI": "174379",
+        "Size": "300"
+    }
+
+    headers = {
+        "Authorization": f"Bearer {get_access_token()}",
+        "Content-Type": "application/json"
+    }
+
+    url = "https://sandbox.safaricom.co.ke/mpesa/qrcode/v1/generate"
+    response = requests.post(url, json=payload, headers=headers)
+    return jsonify(response.json())
