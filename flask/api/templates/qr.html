@@ -1,41 +1,51 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
-
-{% block title %}Generate M-PESA QR{% endblock %}
+{% block title %}Generate QR Code{% endblock %}
 
 {% block content %}
-<div class="card p-4">
     <h3 class="text-center">Generate M-PESA QR Code</h3>
     <form id="qrForm">
         <div class="mb-3">
-            <label class="form-label">Amount</label>
-            <input type="number" class="form-control" id="amount" required>
+            <label>Amount</label>
+            <input type="number" id="amount" class="form-control" required>
         </div>
-        <button type="submit" class="btn btn-success w-100">Generate QR</button>
+        <button type="submit" class="btn btn-success">Generate QR</button>
     </form>
     <div id="qrResult" class="text-center mt-3"></div>
-</div>
-{% endblock %}
-
-{% block scripts %}
 <script>
-$(document).ready(function() {
-    $("#qrForm").submit(function(event) {
-        event.preventDefault();
-        let amount = $("#amount").val();
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("qrForm").addEventListener("submit", function (event) {
+            event.preventDefault();
 
-        $.post("/generate_qr", { amount: amount }, function(response) {
-            if (response.QRCode) {
-                $("#qrResult").html(`
-                    <img src="data:image/png;base64,${response.QRCode}" class="img-fluid" />
-                    <br>
-                    <a href="${response.MpesaDeepLink}" class="btn btn-success mt-3">Pay with M-PESA</a>
-                `);
-            } else {
-                $("#qrResult").html('<p class="text-danger">Failed to generate QR Code</p>');
-            }
+            let amount = document.getElementById("amount").value;
+
+            fetch("/generate_qr", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `amount=${encodeURIComponent(amount)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                let qrResult = document.getElementById("qrResult");
+
+                if (data.QRCode) {
+                    qrResult.innerHTML = `
+                        <img src="data:image/png;base64,${data.QRCode}" class="img-fluid" alt="M-PESA QR Code" />
+                        <br>
+                        <a href="${data.MpesaDeepLink || '#'}" class="btn btn-success mt-3">Pay with M-PESA</a>
+                    `;
+                } else {
+                    qrResult.innerHTML = '<p class="text-danger">Failed to generate QR Code</p>';
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById("qrResult").innerHTML = '<p class="text-danger">An error occurred</p>';
+            });
         });
     });
-});
 </script>
+
 {% endblock %}

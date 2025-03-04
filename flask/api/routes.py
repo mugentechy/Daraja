@@ -1,33 +1,26 @@
-from flask import request, url_for,jsonify,json,current_app,Blueprint,render_template
-from flask_restful import Resource
-import base64, time, os
-import requests
+from flask import request, jsonify, render_template, Blueprint
+import base64, time, os, requests
 
 blueprint = Blueprint('app', __name__)
 
-
-
+# Environment Variables (Set in .env or system variables)
 CONSUMER_KEY = os.getenv('CONSUMER_KEY') 
 CONSUMER_SECRET = os.getenv('CONSUMER_SECRET')  
 BUSINESS_SHORTCODE = os.getenv('BUSINESS_SHORTCODE')
 PASSKEY = os.getenv('PASSKEY') 
 CALLBACK_URL = os.getenv('CALLBACK_URL') 
+QR_CODE_URL = "https://sandbox.safaricom.co.ke/mpesa/qrcode/v1/generate"
 
-
-# Function to get access token
+# Function to Get Access Token
 def get_access_token():
     url = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
     try:
         response = requests.get(url, auth=(CONSUMER_KEY, CONSUMER_SECRET))
-        response.raise_for_status()  # Raise an error for bad responses (4xx, 5xx)
+        response.raise_for_status()
         data = response.json()
-        if "access_token" in data:
-            return data["access_token"]
-        else:
-            print("Error: 'access_token' not found in response", data)
-            return None
+        return data.get("access_token")
     except requests.exceptions.RequestException as e:
-        print("Request Error:", e)
+        print("Error fetching access token:", e)
         return None
 
 # Function to initiate STK push
@@ -77,30 +70,31 @@ def callback():
         log.write(str(response) + "\n")
     return jsonify({"ResultCode": 0, "ResultDesc": "Confirmation Received Successfully"})
 
-
-
 @blueprint.route("/qr", methods=["GET"])
 def qr_page():
     return render_template("qr.html")
-    
-@blueprint.route("/generate_qr", methods=["POST"])
-def generate_qr():
-    amount = request.form.get("amount")
 
+# Function to Generate QR Code
+def generate_qr_code(amount):
+    access_token = get_access_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
     payload = {
         "MerchantName": "TEST SUPERMARKET",
         "RefNo": "Invoice Test",
         "Amount": amount,
         "TrxCode": "BG",
-        "CPI": "174379",
+        "CPI": "373132",
         "Size": "300"
     }
+    response = requests.post(QR_CODE_URL, json=payload, headers=headers)
+    return response.json()
 
-    headers = {
-        "Authorization": f"Bearer {get_access_token()}",
-        "Content-Type": "application/json"
-    }
-
-    url = "https://sandbox.safaricom.co.ke/mpesa/qrcode/v1/generate"
-    response = requests.post(url, json=payload, headers=headers)
-    return jsonify(response.json())
+# QR Code API Endpoint
+@blueprint.route('/generate_qr', methods=['POST'])
+def generate_qr():
+    amount = request.form.get("amount")
+    qr_response = generate_qr_code(amount)
+    return jsonify(qr_response)
